@@ -44,11 +44,18 @@ class TransactionService:
                 raise ValueError(f"待办事项ID {todo_id} 已关联交易ID {todo.transaction_id}")
 
         # 创建交易对象
+        tags = transaction_data.get("tags", "")
+        if tags:
+            tags = tags.strip()
+        notes = transaction_data.get("notes", "")
+        if notes:
+            notes = notes.strip()
+            
         transaction = Transaction(
             amount=amount,
             category=transaction_data["category"].strip(),
-            tags=transaction_data.get("tags", "").strip() or None,
-            notes=transaction_data.get("notes", "").strip() or None
+            tags=tags or None,
+            notes=notes or None
         )
         
         # 如果有待办事项关联，更新待办事项的交易ID
