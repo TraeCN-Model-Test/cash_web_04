@@ -64,18 +64,20 @@ class Formatter:
         console.print(table)
     
     @staticmethod
-    def format_transactions(transactions: List[Any]) -> List[Dict[str, Any]]:
+    def format_transactions(transactions: List[Any], with_todos: bool = False) -> List[Dict[str, Any]]:
         """
         格式化交易数据
 
         Args:
             transactions: 交易对象列表
+            with_todos: 是否显示关联的待办事项信息
 
         Returns:
             格式化后的数据列表
         """
-        return [
-            {
+        formatted = []
+        for t in transactions:
+            item = {
                 "id": t.id,
                 "amount": t.amount,
                 "type": t.transaction_type,
@@ -84,22 +86,31 @@ class Formatter:
                 "notes": t.notes or "-",
                 "created_at": t.created_at
             }
-            for t in transactions
-        ]
+            
+            if with_todos:
+                item["todo_id"] = t.todo.id if t.todo else "-"
+                if t.todo:
+                    item["todo_info"] = f"{t.todo.content} ({t.todo.status_text})"
+                else:
+                    item["todo_info"] = "-"
+            formatted.append(item)
+        return formatted
     
     @staticmethod
-    def format_todos(todos: List[Any]) -> List[Dict[str, Any]]:
+    def format_todos(todos: List[Any], with_transactions: bool = False) -> List[Dict[str, Any]]:
         """
         格式化待办事项数据
 
         Args:
             todos: 待办事项对象列表
+            with_transactions: 是否显示关联的交易信息
 
         Returns:
             格式化后的数据列表
         """
-        return [
-            {
+        formatted = []
+        for t in todos:
+            item = {
                 "id": t.id,
                 "content": t.content,
                 "category": t.category,
@@ -108,8 +119,15 @@ class Formatter:
                 "deadline": t.deadline,
                 "created_at": t.created_at
             }
-            for t in todos
-        ]
+            
+            if with_transactions:
+                item["transaction_id"] = t.transaction_id or "-"
+                if t.transaction:
+                    item["transaction_info"] = f"{t.transaction.amount:.2f} ({t.transaction.category} - {t.transaction.transaction_type})"
+                else:
+                    item["transaction_info"] = "-"
+            formatted.append(item)
+        return formatted
     
     @staticmethod
     def print_success(message: str) -> None:

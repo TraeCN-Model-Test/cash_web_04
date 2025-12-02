@@ -4,6 +4,7 @@ from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from cashlog.models.todo import Todo, TodoStatus
+from cashlog.models.transaction import Transaction
 
 
 class TodoService:
@@ -26,12 +27,24 @@ class TodoService:
             raise ValueError("待办内容为必填项")
         if not todo_data.get("category"):
             raise ValueError("分类为必填项")
+        
+        # 验证关联交易ID
+        transaction_id = todo_data.get("transaction_id")
+        if transaction_id is not None:
+            from cashlog.models.transaction import Transaction
+            transaction = db.query(Transaction).filter(Transaction.id == transaction_id).first()
+            if not transaction:
+                raise ValueError(f"交易ID {transaction_id} 不存在")
+            # 避免循环关联
+            if transaction.todo is not None:
+                raise ValueError(f"交易ID {transaction_id} 已关联待办事项ID {transaction.todo.id}")
 
         # 创建待办对象
         todo = Todo(
             content=todo_data["content"].strip(),
             category=todo_data["category"].strip(),
-            tags=todo_data.get("tags", "").strip() or None
+            tags=todo_data.get("tags", "").strip() or None,
+            transaction_id=transaction_id
         )
 
         # 如果提供了截止时间，设置截止时间
@@ -161,3 +174,114 @@ class TodoService:
             待办事项对象或None
         """
         return db.query(Todo).filter(Todo.id == todo_id).first()
+    
+    @staticmethod
+    def update_todo(db: Session, todo_id: int, todo_data: Dict[str, Any]) -> Todo:
+        """
+        更新待办事项信息
+        
+        Args:
+            db: 数据库会话
+            todo_id: 待办事项ID
+            todo_data: 更新的待办事项数据
+            
+        Returns:
+            更新后的待办事项对象
+        """
+        todo = db.query(Todo).filter(Todo.id == todo_id).first()
+        if not todo:
+            raise ValueError(f"待办事项ID {todo_id} 不存在")
+            
+        # 更新基本信息
+        if "content" in todo_data:
+            content = todo_data["content"].strip()
+            if not content:
+                raise ValueError("待办内容不能为空")
+            todo.content = content
+            
+        if "category" in todo_data:
+            category = todo_data["category"].strip()
+            if not category:
+                raise ValueError("分类不能为空")
+            todo.category = category
+            
+        if "tags" in todo_data:
+            todo.tags = todo_data["tags"].strip() or None
+            
+        if "deadline" in todo_data:
+            if todo_data["deadline"] is None:
+                todo.deadline = None
+            else:
+                try:
+                    # 支持多种时间格式
+                    formats = ["%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"]
+                    for fmt in formats:
+                        try:
+                            todo.deadline = datetime.strptime(todo_data["deadline"], fmt)
+                            break
+                        except ValueError:
+                            continue
+                    else:
+                        raise ValueError("截止时间格式不正确，请使用YYYY-MM-DD HH:MM:SS格式")
+                except ValueError as e:
+                    raise e
+        
+        # 更新关联交易
+        if "transaction_id" in todo_data:
+            transaction_id = todo_data["transaction_id"]
+            if transaction_id is None:
+                # 解除关联
+                if todo.transaction_id is not None:
+                    transaction = db.query(Transaction).filter(Transaction.id == todo.transaction_id).first()
+                    if transaction:
+                        transaction.todo = None
+                todo.transaction_id = None
+            else:
+                from cashlog.models.transaction import Transaction
+                transaction = db.query(Transaction).filter(Transaction.id == transaction_id).first()
+                if not transaction:
+                    raise ValueError(f"交易ID {transaction_id} 不存在")
+                # 避免循环关联
+                if transaction.todo is not None and transaction.todo.id != todo_id:
+                    raise ValueError(f"交易ID {transaction_id} 已关联待办事项ID {transaction.todo.id}")
+                # 先解除原有关联
+                if todo.transaction_id is not None:
+                    old_transaction = db.query(Transaction).filter(Transaction.id == todo.transaction_id).first()
+                    if old_transaction:
+                        old_transaction.todo = None
+                # 建立新关联
+                todo.transaction_id = transaction_id
+                transaction.todo = todo
+                
+        todo.updated_at = datetime.now()
+        db.commit()
+        db.refresh(todo)
+        return todo
+    
+    @staticmethod
+    def remove_todo_transaction_link(db: Session, todo_id: int) -> Todo:
+        """
+        解除待办事项与交易的关联
+        
+        Args:
+            db: 数据库会话
+            todo_id: 待办事项ID
+            
+        Returns:
+            更新后的待办事项对象
+        """
+        todo = db.query(Todo).filter(Todo.id == todo_id).first()
+        if not todo:
+            raise ValueError(f"待办事项ID {todo_id} 不存在")
+            
+        if todo.transaction_id is not None:
+            from cashlog.models.transaction import Transaction
+            transaction = db.query(Transaction).filter(Transaction.id == todo.transaction_id).first()
+            if transaction:
+                transaction.todo_id = None
+            todo.transaction_id = None
+            todo.updated_at = datetime.now()
+            db.commit()
+            db.refresh(todo)
+            
+        return todo

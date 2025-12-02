@@ -4,6 +4,7 @@ from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from cashlog.models.transaction import Transaction
+from cashlog.models.todo import Todo
 
 
 class TransactionService:
@@ -30,6 +31,17 @@ class TransactionService:
         # 验证必填字段
         if not transaction_data.get("category"):
             raise ValueError("分类为必填项")
+        
+        # 验证关联待办事项ID
+        todo_id = transaction_data.get("todo_id")
+        if todo_id is not None:
+            from cashlog.models.todo import Todo
+            todo = db.query(Todo).filter(Todo.id == todo_id).first()
+            if not todo:
+                raise ValueError(f"待办事项ID {todo_id} 不存在")
+            # 避免循环关联
+            if todo.transaction_id is not None:
+                raise ValueError(f"待办事项ID {todo_id} 已关联交易ID {todo.transaction_id}")
 
         # 创建交易对象
         transaction = Transaction(
@@ -38,6 +50,10 @@ class TransactionService:
             tags=transaction_data.get("tags", "").strip() or None,
             notes=transaction_data.get("notes", "").strip() or None
         )
+        
+        # 如果有待办事项关联，更新待办事项的交易ID
+        if todo_id is not None:
+            todo.transaction_id = transaction.id
 
         # 如果提供了时间，设置时间
         if transaction_data.get("created_at"):
@@ -130,3 +146,92 @@ class TransactionService:
             交易对象或None
         """
         return db.query(Transaction).filter(Transaction.id == transaction_id).first()
+    
+    @staticmethod
+    def update_transaction(db: Session, transaction_id: int, transaction_data: Dict[str, Any]) -> Transaction:
+        """
+        更新交易信息
+        
+        Args:
+            db: 数据库会话
+            transaction_id: 交易ID
+            transaction_data: 更新的交易数据
+            
+        Returns:
+            更新后的交易对象
+        """
+        transaction = db.query(Transaction).filter(Transaction.id == transaction_id).first()
+        if not transaction:
+            raise ValueError(f"交易ID {transaction_id} 不存在")
+            
+        # 更新基本信息
+        if "amount" in transaction_data:
+            try:
+                transaction.amount = float(transaction_data["amount"])
+            except (ValueError, TypeError):
+                raise ValueError("金额需为数字")
+                
+        if "category" in transaction_data:
+            category = transaction_data["category"].strip()
+            if not category:
+                raise ValueError("分类不能为空")
+            transaction.category = category
+            
+        if "tags" in transaction_data:
+            transaction.tags = transaction_data["tags"].strip() or None
+            
+        if "notes" in transaction_data:
+            transaction.notes = transaction_data["notes"].strip() or None
+            
+        # 更新关联待办事项
+        if "todo_id" in transaction_data:
+            todo_id = transaction_data["todo_id"]
+            if todo_id is None:
+                # 解除关联
+                existing_todo = db.query(Todo).filter(Todo.transaction_id == transaction.id).first()
+                if existing_todo:
+                    existing_todo.transaction_id = None
+            else:
+                todo = db.query(Todo).filter(Todo.id == todo_id).first()
+                if not todo:
+                    raise ValueError(f"待办事项ID {todo_id} 不存在")
+                # 避免循环关联
+                if todo.transaction_id is not None and todo.transaction_id != transaction.id:
+                    raise ValueError(f"待办事项ID {todo_id} 已关联交易ID {todo.transaction_id}")
+                # 先解除原有关联
+                existing_todo = db.query(Todo).filter(Todo.transaction_id == transaction.id).first()
+                if existing_todo:
+                    existing_todo.transaction_id = None
+                # 建立新关联
+                todo.transaction_id = transaction.id
+                
+        transaction.updated_at = datetime.now()
+        db.commit()
+        db.refresh(transaction)
+        return transaction
+    
+    @staticmethod
+    def remove_transaction_todo_link(db: Session, transaction_id: int) -> Transaction:
+        """
+        解除交易与待办事项的关联
+        
+        Args:
+            db: 数据库会话
+            transaction_id: 交易ID
+            
+        Returns:
+            更新后的交易对象
+        """
+        transaction = db.query(Transaction).filter(Transaction.id == transaction_id).first()
+        if not transaction:
+            raise ValueError(f"交易ID {transaction_id} 不存在")
+            
+        from cashlog.models.todo import Todo
+        existing_todo = db.query(Todo).filter(Todo.transaction_id == transaction.id).first()
+        if existing_todo:
+            existing_todo.transaction_id = None
+            transaction.updated_at = datetime.now()
+            db.commit()
+            db.refresh(transaction)
+            
+        return transaction
