@@ -1,6 +1,7 @@
 """待办事项数据模型"""
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, Text, Enum
+from sqlalchemy import Column, Integer, String, DateTime, Text, Enum, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy import Enum as SQLEnum
 import enum
 from cashlog.models.db import Base
@@ -22,9 +23,13 @@ class Todo(Base):
     category = Column(String(50), nullable=False)
     tags = Column(String(200), nullable=True)
     deadline = Column(DateTime, nullable=True)
+    transaction_id = Column(Integer, ForeignKey("transactions.id"), nullable=True)
     status = Column(SQLEnum(TodoStatus), default=TodoStatus.TODO, nullable=False)
     created_at = Column(DateTime, default=datetime.now, nullable=False)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    # 关联关系
+    transaction = relationship("Transaction", back_populates="todo")
 
     @property
     def status_text(self):

@@ -1,6 +1,7 @@
 """交易数据模型"""
 from datetime import datetime
-from sqlalchemy import Column, Integer, Float, String, DateTime, Text
+from sqlalchemy import Column, Integer, Float, String, DateTime, Text, ForeignKey
+from sqlalchemy.orm import relationship
 from cashlog.models.db import Base
 
 
@@ -15,6 +16,9 @@ class Transaction(Base):
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.now, nullable=False)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    # 关联关系
+    todo = relationship("Todo", back_populates="transaction", uselist=False, primaryjoin="Transaction.id == Todo.transaction_id")
 
     @property
     def transaction_type(self):
