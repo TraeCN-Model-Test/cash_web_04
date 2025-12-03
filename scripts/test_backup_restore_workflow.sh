@@ -18,7 +18,7 @@
 #   7. 提供彩色输出和详细的步骤反馈
 #
 # 使用方法:
-#   在项目根目录执行: ./scripts/backup_restore_normal.sh
+#   在项目根目录执行: ./scripts/test_backup_restore_workflow.sh
 #
 # 注意事项:
 #   - 脚本会在项目根目录下创建tmp_cashlog_backup_test.db临时备份文件

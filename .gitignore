@@ -8,3 +8,8 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Test temporary files
+test_temp/
+test_api.db
+tmp_cashlog_test/

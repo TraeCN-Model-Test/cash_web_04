@@ -30,7 +30,9 @@ def get_db():
         db.close()
 
 
-def init_db():
+def init_db(engine=None):
     """初始化数据库，创建所有表"""
     from cashlog.models import transaction, todo  # noqa: F401
+    if engine is None:
+        engine = globals()['engine']
     Base.metadata.create_all(bind=engine)

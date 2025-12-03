@@ -15,7 +15,7 @@
 #   4. 提供查看数据的命令示例
 #
 # 使用方法:
-#   在项目根目录执行: ./scripts/add_todo_test_data.sh
+#   在项目根目录执行: ./scripts/setup_todo_test_data.sh
 #
 # 注意事项:
 #   - 执行前请确保数据库已初始化

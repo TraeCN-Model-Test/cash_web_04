@@ -9,7 +9,11 @@ dependencies = [
     "rich>=14.0.0",
     "click>=8.0.0",
     "pytest>=9.0.1",
-    "pytest-cov>=7.0.0"
+    "pytest-cov>=7.0.0",
+    "fastapi>=0.123.5",
+    "uvicorn>=0.38.0",
+    "pydantic>=2.12.5",
+    "fastapi-pagination>=0.15.0",
 ]
 
 [build-system]

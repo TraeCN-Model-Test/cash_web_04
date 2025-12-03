@@ -5,7 +5,7 @@ import tempfile
 from unittest.mock import patch, MagicMock
 from click.testing import CliRunner
 from cashlog.cli.data_cli import data
-from tests.test_cli_base import CLITestBase
+from tests.test_cli_utilities import CLITestBase
 
 
 class TestDataCLI(CLITestBase):

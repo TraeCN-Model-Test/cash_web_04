@@ -17,7 +17,7 @@
 #   6. 提供彩色输出和详细的测试结果反馈
 #
 # 使用方法:
-#   在项目根目录执行: ./scripts/backup_restore_error.sh
+#   在项目根目录执行: ./scripts/test_backup_restore_error_cases.sh
 #
 # 注意事项:
 #   - 脚本会在项目根目录下创建tmp_cashlog_test临时目录
