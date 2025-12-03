@@ -19,7 +19,7 @@
 #   5. 提供详细的测试进度反馈和结果验证
 #
 # 使用方法:
-#   在项目根目录执行: ./scripts/run_full_test.sh
+#   在项目根目录执行: ./scripts/run_integration_tests.sh
 #
 # 注意事项:
 #   - 脚本使用set -e，任何测试失败将立即终止执行
@@ -38,7 +38,7 @@ echo ""
 
 # 1. 运行报表服务单元测试
 echo "1. 运行报表服务单元测试..."
-uv run pytest tests/test_report_service.py -v
+uv run pytest tests/test_report_generation_service.py -v
 if [ $? -ne 0 ]; then
     echo "报表服务单元测试失败！"
     exit 1

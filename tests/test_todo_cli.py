@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from click.testing import CliRunner
 from cashlog.cli.todo_cli import todo
-from tests.test_cli_base import CLITestBase
+from tests.test_cli_utilities import CLITestBase
 
 
 class TestTodoCLI(CLITestBase):

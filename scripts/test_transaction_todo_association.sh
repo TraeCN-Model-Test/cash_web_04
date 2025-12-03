@@ -19,7 +19,7 @@
 #   8. 提供测试数据清理功能
 #
 # 使用方法:
-#   在项目根目录执行: ./scripts/test_association.sh
+#   在项目根目录执行: ./scripts/test_transaction_todo_association.sh
 #
 # 注意事项:
 #   - 脚本使用set -e，任何测试失败将立即终止执行

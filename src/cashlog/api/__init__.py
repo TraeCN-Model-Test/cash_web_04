@@ -1,8 +1,8 @@
 """API接口入口"""
 from fastapi import FastAPI
 from fastapi_pagination import add_pagination
-from cashlog.api.v1.todo import router as todo_router
-from cashlog.api.v1.transaction import router as transaction_router
+from cashlog.api.todo import router as todo_router
+from cashlog.api.transaction import router as transaction_router
 
 
 def create_app():
@@ -16,8 +16,8 @@ def create_app():
     )
     
     # 注册路由
-    app.include_router(todo_router, prefix="/api/v1")
-    app.include_router(transaction_router, prefix="/api/v1")
+    app.include_router(todo_router, prefix="/api")
+    app.include_router(transaction_router, prefix="/api")
     
     # 添加分页支持
     add_pagination(app)

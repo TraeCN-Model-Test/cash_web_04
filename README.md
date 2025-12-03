@@ -29,6 +29,12 @@ CashLog 是一款轻量化本地记账/待办事项管理工具，专为个人�
 - **数据恢复**：支持从备份文件恢复，恢复前可自动备份当前数据
 - **数据安全**：所有操作都有确认机制，防止误操作
 
+### 🌐 REST API
+- **待办事项API**：提供完整的待办事项CRUD操作
+- **交易记录API**：提供交易记录的查询和管理功能
+- **筛选和分页**：支持多条件筛选和分页查询
+- **API文档**：自动生成的OpenAPI文档
+
 ## 🚀 快速开始
 
 ### 环境要求
@@ -41,7 +47,7 @@ CashLog 是一款轻量化本地记账/待办事项管理工具，专为个人�
 1. 克隆项目
 ```bash
 git clone <repository-url>
-cd cash_report08
+cd cash_web_04
 ```
 
 2. 安装依赖
@@ -201,6 +207,34 @@ uv run python main.py data restore -i ~/cashlog_backup.db -y
 uv run python main.py data restore -i ~/cashlog_backup.db -y -b False
 ```
 
+### REST API
+
+#### 启动API服务器
+```bash
+# 启动API服务器（默认端口8000）
+uv run python src/cashlog/rest/api.py
+
+# 自定义端口
+uv run python src/cashlog/rest/api.py --port 8080
+```
+
+#### API端点
+```bash
+# 待办事项API
+GET    /todos              # 获取待办事项列表
+GET    /todos/{todo_id}    # 获取特定待办事项
+POST   /todos              # 创建待办事项
+PUT    /todos/{todo_id}    # 更新待办事项
+DELETE /todos/{todo_id}    # 删除待办事项
+
+# 交易记录API
+GET    /transactions              # 获取交易记录列表
+GET    /transactions/{trans_id}   # 获取特定交易记录
+POST   /transactions              # 创建交易记录
+PUT    /transactions/{trans_id}   # 更新交易记录
+DELETE /transactions/{trans_id}   # 删除交易记录
+```
+
 ## 🧪 测试
 
 项目包含完整的测试套件，可运行以下命令进行测试：
@@ -210,19 +244,19 @@ uv run python main.py data restore -i ~/cashlog_backup.db -y -b False
 uv run pytest
 
 # 运行完整功能测试（包含测试数据）
-./scripts/run_full_test.sh
+./scripts/run_integration_tests.sh
 
 # 添加交易测试数据
-./scripts/add_test_data.sh
+./scripts/setup_transaction_test_data.sh
 
 # 添加待办事项测试数据
-./scripts/add_todo_test_data.sh
+./scripts/setup_todo_test_data.sh
 ```
 
 ## 📁 项目结构
 
 ```
-cash_report08/
+cash_web_04/
 ├── src/cashlog/           # 源代码目录
 │   ├── cli/              # 命令行接口
 │   │   ├── data_cli.py   # 数据管理命令
@@ -234,6 +268,12 @@ cash_report08/
 │   │   ├── db.py         # 数据库配置
 │   │   ├── todo.py       # 待办事项模型
 │   │   └── transaction.py # 交易模型
+│   ├── rest/             # REST API
+│   │   ├── api.py        # API主入口
+│   │   ├── models.py     # API数据模型
+│   │   └── routers/      # API路由
+│   │       ├── todos.py  # 待办事项路由
+│   │       └── transactions.py # 交易记录路由
 │   ├── services/         # 业务逻辑服务
 │   │   ├── data_service.py # 数据管理服务
 │   │   ├── report_service.py # 报表服务
@@ -242,13 +282,23 @@ cash_report08/
 │   └── utils/            # 工具函数
 │       └── formatter.py  # 格式化工具
 ├── tests/                # 单元测试
+│   ├── test_backup_restore_cli.py            # 备份恢复CLI命令测试
+│   ├── test_backup_restore_service.py        # 备份恢复服务功能测试
+│   ├── test_cli_utilities.py                 # CLI工具类测试基类
+│   ├── test_report_generation_cli.py         # 报表生成CLI命令测试
+│   ├── test_report_generation_service.py     # 报表生成服务功能测试
+│   ├── test_rest_api.py                      # REST API接口测试
+│   ├── test_todo_cli.py                      # 待办事项CLI命令测试
+│   ├── test_todo_service.py                  # 待办事项服务功能测试
+│   ├── test_transaction_cli.py               # 交易记录CLI命令测试
+│   └── test_transaction_service.py           # 交易记录服务功能测试
 ├── scripts/              # 脚本工具
-│   ├── add_test_data.sh  # 添加交易测试数据
-│   ├── add_todo_test_data.sh # 添加待办事项测试数据
-│   ├── backup_restore_error.sh # 备份恢复错误测试
-│   ├── backup_restore_normal.sh # 备份恢复正常测试
-│   ├── run_full_test.sh  # 运行完整测试
-│   └── test_association.sh # 关联测试
+│   ├── setup_transaction_test_data.sh  # 添加交易测试数据
+│   ├── setup_todo_test_data.sh # 添加待办事项测试数据
+│   ├── test_backup_restore_error_cases.sh # 备份恢复错误测试
+│   ├── test_backup_restore_workflow.sh # 备份恢复正常测试
+│   ├── run_integration_tests.sh  # 运行完整测试
+│   └── test_transaction_todo_association.sh # 交易与待办关联测试
 ├── data/                 # 数据存储目录
 │   ├── backups/          # 备份文件目录
 │   └── cashlog.db        # 主数据库文件
@@ -266,6 +316,8 @@ cash_report08/
 - **数据库**: SQLAlchemy + SQLite
 - **终端输出**: Rich
 - **测试框架**: Pytest
+- **API框架**: FastAPI
+- **API文档**: OpenAPI/Swagger
 
 ### 本地开发
 
@@ -283,6 +335,20 @@ uv run pytest
 ```bash
 uv run black src/ tests/
 ```
+
+4. 启动API服务器（开发模式）
+```bash
+uv run uvicorn src.cashlog.rest.api:app --reload
+```
+
+### 项目文档
+
+项目包含核心文档，位于以下位置：
+
+- [src/cashlog/README.md](src/cashlog/README.md) - 核心模块概述
+- [src/cashlog/api/README.md](src/cashlog/api/README.md) - REST API文档
+- [scripts/README.md](scripts/README.md) - 脚本工具文档
+- [tests/README.md](tests/README.md) - 测试文档
 
 ## 📄 许可证
 
