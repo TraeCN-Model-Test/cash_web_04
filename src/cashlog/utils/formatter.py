@@ -161,3 +161,14 @@ class Formatter:
         """
         console = Console()
         console.print(f"[blue]ℹ {message}[/blue]")
+    
+    @staticmethod
+    def print_warning(message: str) -> None:
+        """
+        打印警告消息
+
+        Args:
+            message: 消息内容
+        """
+        console = Console()
+        console.print(f"[yellow]⚠ {message}[/yellow]")
