@@ -27,8 +27,15 @@ class TestDataService(unittest.TestCase):
         # 使用monkey patch替换DB_PATH常量
         self._monkey_patch_db_path()
         
-        # 创建一个空文件作为测试数据库
-        open(self.test_db_path, 'w').close()
+        # 创建一个有效的SQLite数据库文件作为测试数据库
+        import sqlite3
+        conn = sqlite3.connect(self.test_db_path)
+        cursor = conn.cursor()
+        # 创建一个简单的表
+        cursor.execute("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)")
+        cursor.execute("INSERT INTO test (name) VALUES ('test')")
+        conn.commit()
+        conn.close()
         
     def _monkey_patch_db_path(self):
         """使用monkey patch替换DB_PATH常量"""
@@ -46,14 +53,22 @@ class TestDataService(unittest.TestCase):
     
     def test_create_backup_default_path(self):
         """测试使用默认路径创建备份"""
-        backup_path = DataService.create_backup()
+        # 模拟当前日期，确保备份文件名可预测
+        with patch('cashlog.services.data_service.datetime') as mock_datetime:
+            mock_datetime.datetime.now.return_value.strftime.return_value = "20231201"
+            # 同时patch DB_PATH，确保使用测试数据库路径
+            with patch('cashlog.services.data_service.DB_PATH', self.test_db_path):
+                backup_path = DataService.create_backup()
         
         # 验证备份文件存在
         self.assertTrue(os.path.exists(backup_path))
         # 验证备份文件以.db结尾
         self.assertTrue(backup_path.endswith('.db'))
-        # 验证备份路径在项目数据目录下的backups文件夹
+        # 验证备份路径在测试数据目录下的backups文件夹
         self.assertIn('data/backups', backup_path)
+        # 验证备份路径在测试数据库目录下，而不是项目目录中
+        expected_backup_dir = os.path.join(self.test_data_dir, "backups")
+        self.assertTrue(backup_path.startswith(expected_backup_dir))
     
     def test_create_backup_custom_path(self):
         """测试使用自定义路径创建备份"""

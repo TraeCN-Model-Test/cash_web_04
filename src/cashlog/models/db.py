@@ -2,8 +2,7 @@
 import os
 from pathlib import Path
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 # 确保数据库目录存在
 DB_DIR = Path(__file__).parent.parent.parent.parent / "data"

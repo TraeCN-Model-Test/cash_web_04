@@ -150,7 +150,7 @@ def test_format_report_text(sample_transactions, db_session):
     text_report = ReportService.format_report(report_data, "text")
     
     # 验证文本报表包含关键信息
-    assert "2023-12 月度收支报表" in text_report
+    assert "2023-12 收支报表" in text_report
     assert "总收入: 6000.00" in text_report
     assert "总支出: 3500.00" in text_report
     assert "结余: 2500.00" in text_report
@@ -164,7 +164,7 @@ def test_format_report_markdown(sample_transactions, db_session):
     markdown_report = ReportService.format_report(report_data, "markdown")
     
     # 验证Markdown报表包含关键信息
-    assert "# 2023-12 月度收支报表" in markdown_report
+    assert "# 2023-12 收支报表" in markdown_report
     assert "| 总收入 | 6000.00 |" in markdown_report
     assert "| 总支出 | 3500.00 |" in markdown_report
     assert "| 结余 | 2500.00 |" in markdown_report
@@ -177,7 +177,7 @@ def test_format_report_no_data_text(db_session):
     report_data = ReportService.generate_monthly_report(db_session, "2023-10")
     text_report = ReportService.format_report(report_data, "text")
     
-    assert "2023-10 月度收支报表" in text_report
+    assert "2023-10 收支报表" in text_report
     assert "暂无数据" in text_report
 
 
@@ -186,5 +186,85 @@ def test_format_report_no_data_markdown(db_session):
     report_data = ReportService.generate_monthly_report(db_session, "2023-10")
     markdown_report = ReportService.format_report(report_data, "markdown")
     
-    assert "# 2023-10 月度收支报表" in markdown_report
+    assert "# 2023-10 收支报表" in markdown_report
     assert "暂无数据" in markdown_report
+
+
+def test_generate_report_daily(sample_transactions, db_session):
+    """测试按日维度生成报表"""
+    report_data = ReportService.generate_report(db_session, "daily", "2023-12-01", "2023-12-01")
+    
+    assert report_data["period"] == "2023-12-01"
+    assert report_data["time_dimension"] == "daily"
+    assert report_data["total_income"] == 5000.00  # 12月1日的工资
+    assert report_data["total_expense"] == 0
+    assert report_data["balance"] == 5000.00
+    assert report_data["has_data"] is True
+
+
+def test_generate_report_weekly(sample_transactions, db_session):
+    """测试按周维度生成报表"""
+    report_data = ReportService.generate_report(db_session, "custom", "2023-12-04", "2023-12-10")
+    
+    assert report_data["time_dimension"] == "custom"
+    assert report_data["total_income"] == 0
+    assert report_data["total_expense"] == 1500.00  # 餐饮1000 + 交通500
+    assert report_data["balance"] == -1500.00
+    assert report_data["has_data"] is True
+
+
+def test_generate_report_category_filter(sample_transactions, db_session):
+    """测试分类筛选功能"""
+    report_data = ReportService.generate_report(db_session, "monthly", "2023-12-01", "2023-12-31", ["餐饮", "交通"])
+    
+    assert report_data["total_income"] == 0
+    assert report_data["total_expense"] == 1500.00  # 餐饮1000 + 交通500
+    assert len(report_data["category_stats"]) == 2
+    assert "餐饮" in report_data["category_stats"]
+    assert "交通" in report_data["category_stats"]
+
+
+def test_generate_report_custom_interval(sample_transactions, db_session):
+    """测试自定义时间区间"""
+    report_data = ReportService.generate_report(db_session, "custom", "2023-12-01", "2023-12-15")
+    
+    assert report_data["time_dimension"] == "custom"
+    assert report_data["total_income"] == 6000.00  # 工资5000 + 奖金1000
+    assert report_data["total_expense"] == 1500.00  # 餐饮1000 + 交通500
+    assert report_data["balance"] == 4500.00
+
+
+def test_generate_report_missing_end_date(db_session):
+    """测试缺少结束日期的自定义区间"""
+    with pytest.raises(ValueError, match="自定义区间必须同时提供开始和结束日期"):
+        ReportService.generate_report(db_session, "custom", "2023-12-01", None)
+
+
+def test_generate_report_invalid_date_order(db_session):
+    """测试结束日期早于开始日期的情况"""
+    with pytest.raises(ValueError, match="结束日期必须晚于开始日期"):
+        ReportService.generate_report(db_session, "custom", "2023-12-31", "2023-12-01")
+
+
+def test_generate_report_comparison(sample_transactions, db_session):
+    """测试环比计算功能"""
+    report_data = ReportService.generate_report(db_session, "monthly", "2023-12-01", "2023-12-31")
+    
+    assert "comparison" in report_data
+    assert report_data["comparison"] is not None
+    assert report_data["comparison"]["period"] == "2023-11"
+    assert report_data["comparison"]["total_income"] == 4500.00  # 11月工资
+    assert report_data["comparison"]["income_change"] == 33.33  # (6000-4500)/4500*100
+
+
+def test_format_report_with_custom_fields(sample_transactions, db_session):
+    """测试自定义字段展示功能"""
+    report_data = ReportService.generate_report(db_session, "monthly", "2023-12-01", "2023-12-31")
+    text_report = ReportService.format_report(report_data, "text", ["金额", "分类"])
+    
+    assert "总收入: 6000.00" in text_report
+    assert "总支出: 3500.00" in text_report
+    assert "工资:" in text_report
+    assert "餐饮:" in text_report
+    assert "交易描述" not in text_report
+    assert "待办 ID" not in text_report
